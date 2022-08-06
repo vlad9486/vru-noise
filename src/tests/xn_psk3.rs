@@ -25,12 +25,12 @@ where
     let init_ephemeral = pair::<E>(v.init_ephemeral);
     let resp_ephemeral = pair::<E>(v.resp_ephemeral.unwrap());
     let init_static = pair::<E>(v.init_static.unwrap());
-    let resp_static = pair::<E>(v.resp_static.unwrap());
 
     let mut payload0 = hex::decode(v.messages[0].payload).unwrap();
     let mut payload1 = hex::decode(v.messages[1].payload).unwrap();
     let mut init_static_compressed = init_static.1.as_ref().as_ref().to_vec();
     let mut payload2 = hex::decode(v.messages[2].payload).unwrap();
+    let psk = hex::decode(v.psks[0]).unwrap();
 
     let Output {
         sender,
@@ -38,19 +38,19 @@ where
         hash,
     } = SymmetricState::<C, _>::new(v.name)
         .mix_hash(hex::decode(v.prologue).unwrap().as_slice())
-        // <- s
-        .mix_hash(resp_static.1.as_ref().as_ref())
-        // -> e, es
+        // -> e
         .mix_hash(init_ephemeral.1.as_ref().as_ref())
-        .mix_shared_secret(*(&resp_static.1 * &init_ephemeral.0).as_ref())
+        .mix_shared_secret(*init_ephemeral.1.as_ref())
         .encrypt_ext(&mut payload0)
         // <- e, ee
         .mix_hash(resp_ephemeral.1.as_ref().as_ref())
+        .mix_shared_secret(*resp_ephemeral.1.as_ref())
         .mix_shared_secret(*(&resp_ephemeral.1 * &init_ephemeral.0).as_ref())
-        .encrypt_ext(&mut payload1.as_mut())
-        // -> s, se
+        .encrypt_ext(&mut payload1)
+        // -> s, se, psk
         .encrypt_ext(&mut init_static_compressed)
         .mix_shared_secret(*(&resp_ephemeral.1 * &init_static.0).as_ref())
+        .mix_psk(psk)
         .encrypt_ext(&mut payload2)
         .finish::<1, true>();
 

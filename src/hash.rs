@@ -106,7 +106,7 @@ where
         data: &[u8],
     ) -> (
         GenericArray<u8, Self::L>,
-        GenericArray<u8, A::KeySize>,
+        GenericArray<u8, Self::L>,
         GenericArray<u8, A::KeySize>,
     );
 }
@@ -157,15 +157,11 @@ where
         data: &[u8],
     ) -> (
         GenericArray<u8, Self::L>,
-        GenericArray<u8, A::KeySize>,
+        GenericArray<u8, Self::L>,
         GenericArray<u8, A::KeySize>,
     ) {
         let keys = Self::hkdf_split(Some(chaining_key), data);
         let [chaining_key, middle, key]: [_; 3] = keys.into();
-        (
-            chaining_key,
-            truncate::<A>(middle.as_ref()),
-            truncate::<A>(key.as_ref()),
-        )
+        (chaining_key, middle, truncate::<A>(key.as_ref()))
     }
 }

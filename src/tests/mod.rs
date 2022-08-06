@@ -2,6 +2,7 @@ mod test_vector;
 use self::test_vector::TestVector;
 
 mod xk;
+mod xn_psk3;
 
 mod elliptic;
 use self::elliptic::{C25519Scalar, X448Scalar};
@@ -139,4 +140,13 @@ fn Noise_XK_448_AESGCM_BLAKE2s() {
     xk::f::<X448Scalar, [u8; 56], (SimpleHmac<Blake2s256>, Blake2s256, B1, aes_gcm::Aes256Gcm)>(
         &vector,
     );
+}
+
+//
+
+#[test]
+#[allow(non_snake_case)]
+fn Noise_XNpsk3_25519_ChaChaPoly_SHA512() {
+    let vector = TestVector::try_load("Noise_XNpsk3_25519_ChaChaPoly_SHA512").unwrap();
+    xn_psk3::f::<C25519Scalar, [u8; 32], (Hmac<Sha512>, Sha512, B0, ChaCha20Poly1305)>(&vector);
 }
