@@ -1,6 +1,6 @@
 [package]
 name = "vru-noise"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["Vladislav Melnik <vladislav.melnik@protonmail.com>"]
 edition = "2021"
 rust-version = "1.58.1"
@@ -19,11 +19,11 @@ curve25519-dalek = { version = "3.2" }
 x448 = { version = "0.6.0" }
 sha2 = { version = "0.10.2" }
 blake2 = { version = "0.10.4" }
-aes-gcm = { version = "0.9.4" }
-chacha20poly1305 = { version = "0.9.1" }
+aes-gcm = { version = "0.10.1" }
+chacha20poly1305 = { version = "0.10.0" }
 
 [dependencies]
-aead = { version = "0.4.3" }
+aead = { version = "0.5.0" }
 digest = { version = "0.10.3" }
 hkdf = { version = "0.12.3" }
 generic-array = { version = "0.14.5" }

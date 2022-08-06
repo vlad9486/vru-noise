@@ -2,7 +2,7 @@ use core::ops::Mul;
 
 use {
     digest::{Update, core_api::BlockSizeUser, FixedOutput},
-    aead::NewAead,
+    aead::KeySizeUser,
     generic_array::{
         GenericArray, ArrayLength,
         sequence::GenericSequence,
@@ -87,7 +87,7 @@ where
 
 pub trait HkdfSplitExt<A>
 where
-    A: NewAead,
+    A: KeySizeUser,
 {
     type L: ArrayLength<u8>;
 
@@ -113,7 +113,7 @@ where
 
 fn truncate<A>(chaining_key: &[u8]) -> GenericArray<u8, A::KeySize>
 where
-    A: NewAead,
+    A: KeySizeUser,
 {
     let input_length = chaining_key.len();
     let output_length = A::KeySize::USIZE;
@@ -126,7 +126,7 @@ where
 
 impl<A, T> HkdfSplitExt<A> for T
 where
-    A: NewAead,
+    A: KeySizeUser,
     T: HkdfSplit<typenum::U2> + HkdfSplit<typenum::U3, L = <Self as HkdfSplit<typenum::U2>>::L>,
 {
     type L = <T as HkdfSplit<typenum::U2>>::L;

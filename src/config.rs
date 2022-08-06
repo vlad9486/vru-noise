@@ -1,5 +1,5 @@
 use {
-    aead::{NewAead, AeadCore, AeadInPlace, Nonce},
+    aead::{KeyInit, AeadCore, AeadInPlace, Nonce},
     generic_array::typenum::{Bit, Unsigned},
     digest::OutputSizeUser,
     hkdf::HmacImpl,
@@ -9,7 +9,7 @@ use super::hash::{MixHash, HkdfSplitExt};
 
 pub trait Config {
     type BigEndianness: Bit; // LittleEndian for chacha20poly1305 and BigEndian for Aes256Gcm
-    type Aead: NewAead + AeadInPlace;
+    type Aead: KeyInit + AeadInPlace;
     type MixHash: MixHash;
     type HkdfSplit: HkdfSplitExt<Self::Aead, L = <Self::MixHash as MixHash>::L>;
 }
@@ -20,7 +20,7 @@ where
     (D, I): HkdfSplitExt<A, L = <D as MixHash>::L>,
     D: OutputSizeUser + MixHash,
     E: Bit,
-    A: NewAead + AeadInPlace,
+    A: KeyInit + AeadInPlace,
 {
     type BigEndianness = E;
     type Aead = A;

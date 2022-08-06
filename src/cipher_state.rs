@@ -1,14 +1,14 @@
 use core::fmt;
 
 use {
-    aead::{NewAead, AeadInPlace, AeadCore},
+    aead::{KeyInit, KeySizeUser, AeadInPlace, AeadCore},
     generic_array::GenericArray,
 };
 
 use super::config::{Config, ConfigExt};
 
 pub type Tag<C> = GenericArray<u8, <<C as Config>::Aead as AeadCore>::TagSize>;
-pub type Aead<C> = GenericArray<u8, <<C as Config>::Aead as NewAead>::KeySize>;
+pub type Aead<C> = GenericArray<u8, <<C as Config>::Aead as KeySizeUser>::KeySize>;
 
 #[derive(Debug)]
 pub struct MacMismatch;

@@ -1,7 +1,7 @@
 use core::{marker::PhantomData, ops::Add};
 
 use {
-    aead::{NewAead, AeadInPlace},
+    aead::{KeyInit, AeadInPlace},
     generic_array::{
         GenericArray,
         typenum::{self, Unsigned},
