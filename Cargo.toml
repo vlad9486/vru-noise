@@ -1,6 +1,6 @@
 [package]
 name = "vru-noise"
-version = "1.5.0"
+version = "1.6.0"
 authors = ["Vladislav Melnik <vladislav.melnik@protonmail.com>"]
 edition = "2021"
 rust-version = "1.58.1"
@@ -15,16 +15,16 @@ alloc = []
 hex = { version = "0.4.3" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
-curve25519-dalek = { version = "3.2" }
+curve25519-dalek = { version = "4.1" }
 x448 = { version = "0.6.0" }
-sha2 = { version = "0.10.2" }
-blake2 = { version = "0.10.4" }
-aes-gcm = { version = "0.10.1" }
-chacha20poly1305 = { version = "0.10.0" }
+sha2 = { version = "0.10.8" }
+blake2 = { version = "0.10.6" }
+aes-gcm = { version = "0.10.3" }
+chacha20poly1305 = { version = "0.10.1" }
 
 [dependencies]
-aead = { version = "0.5.0" }
-digest = { version = "0.10.3" }
+aead = { version = "0.5.2" }
+digest = { version = "0.10.7" }
 hkdf = { version = "0.12.3" }
-generic-array = { version = "0.14.5" }
-zeroize = { version = "1.5" }
+generic-array = { version = "0.14.7" }
+zeroize = { version = "1.6" }

@@ -21,13 +21,13 @@ impl EllipticSecret for C25519Scalar {
         buffer[31] &= 127;
         buffer[31] |= 64;
 
-        let secret = curve25519_dalek::scalar::Scalar::from_bits(buffer);
+        let secret = curve25519_dalek::scalar::Scalar::from_bytes_mod_order(buffer);
         C25519Scalar(secret)
     }
 
     fn public(&self) -> Self::Public {
         let t = curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
-        let public = (&t * &self.0).to_montgomery();
+        let public = (t * &self.0).to_montgomery();
         C25519Point(public)
     }
 }
