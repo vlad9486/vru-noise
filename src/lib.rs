@@ -17,7 +17,7 @@ mod symmetric_state;
 
 pub use self::config::{Config, ConfigExt};
 pub use self::cipher_state::{Tag, Aead, MacMismatch, CipherInner, Cipher};
-pub use self::symmetric_state::{Output, Key, SymmetricState, ChainingKey};
+pub use self::symmetric_state::{Output, OutputRaw, Key, SymmetricState, ChainingKey};
 
 pub use generic_array;
 pub use digest;

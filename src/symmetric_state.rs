@@ -1,7 +1,7 @@
 use core::{marker::PhantomData, ops::Add};
 
 use {
-    aead::{KeyInit, AeadInPlace},
+    aead::{KeyInit, AeadInPlace, KeySizeUser},
     generic_array::{
         GenericArray,
         typenum::{self, Unsigned},
@@ -21,7 +21,17 @@ where
 {
     pub sender: Cipher<C, STEP, true>,
     pub receiver: Cipher<C, STEP, false>,
-    pub hash: GenericArray<u8, <C::MixHash as MixHash>::L>,
+    pub hash: Hash<C>,
+}
+
+#[derive(Clone)]
+pub struct OutputRaw<C>
+where
+    C: Config,
+{
+    pub sender: GenericArray<u8, <C::Aead as KeySizeUser>::KeySize>,
+    pub receiver: GenericArray<u8, <C::Aead as KeySizeUser>::KeySize>,
+    pub hash: Hash<C>,
 }
 
 pub struct Key<C, N>
@@ -157,6 +167,25 @@ where
         SymmetricState { key, hash }
     }
 
+    pub fn finish_raw<const STEP: u64, const SWAP: bool>(self) -> OutputRaw<C> {
+        let mut c = self.key.into();
+        let (send_key, receive_key) = C::HkdfSplit::split_final(&c, &[]);
+        c.zeroize();
+        if SWAP {
+            OutputRaw {
+                sender: receive_key,
+                receiver: send_key,
+                hash: self.hash,
+            }
+        } else {
+            OutputRaw {
+                sender: send_key,
+                receiver: receive_key,
+                hash: self.hash,
+            }
+        }
+    }
+
     pub fn finish<const STEP: u64, const SWAP: bool>(self) -> Output<C, STEP> {
         let mut c = self.key.into();
         let (mut send_key, mut receive_key) = C::HkdfSplit::split_final(&c, &[]);
@@ -262,5 +291,194 @@ where
                 hash,
             })
             .map_err(|_| MacMismatch)
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde_m {
+    use core::{mem, fmt};
+    use alloc::string::String;
+
+    use aead::KeySizeUser;
+    use generic_array::{GenericArray, typenum::Unsigned};
+    use serde::{Serialize, Deserialize};
+
+    use super::{SymmetricState, ChainingKey, Config, Hash, OutputRaw};
+
+    #[derive(Serialize, Deserialize, Debug)]
+    struct Inner {
+        key: String,
+        hash: String,
+    }
+
+    impl<C> SymmetricState<C, ChainingKey<C>>
+    where
+        C: Config,
+    {
+        fn as_inner(&self) -> Inner {
+            Inner {
+                key: hex::encode(&self.key),
+                hash: hex::encode(&self.hash),
+            }
+        }
+    }
+
+    impl<'de, C> TryFrom<Inner> for SymmetricState<C, ChainingKey<C>>
+    where
+        C: Config,
+    {
+        type Error = hex::FromHexError;
+
+        fn try_from(Inner { key, hash }: Inner) -> Result<Self, Self::Error> {
+            let key = hex::decode(key).and_then(|v| {
+                if v.len() == mem::size_of::<ChainingKey<C>>() {
+                    Ok(GenericArray::from_slice(&v).clone())
+                } else {
+                    Err(hex::FromHexError::InvalidStringLength)
+                }
+            })?;
+            let hash = hex::decode(hash).and_then(|v| {
+                if v.len() == mem::size_of::<Hash<C>>() {
+                    Ok(GenericArray::from_slice(&v).clone())
+                } else {
+                    Err(hex::FromHexError::InvalidStringLength)
+                }
+            })?;
+            Ok(SymmetricState { key, hash })
+        }
+    }
+
+    impl<'de, C> Deserialize<'de> for SymmetricState<C, ChainingKey<C>>
+    where
+        C: Config,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            Inner::deserialize(deserializer)?
+                .try_into()
+                .map_err(serde::de::Error::custom)
+        }
+    }
+
+    impl<C> Serialize for SymmetricState<C, ChainingKey<C>>
+    where
+        C: Config,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            self.as_inner().serialize(serializer)
+        }
+    }
+
+    impl<C> fmt::Debug for SymmetricState<C, ChainingKey<C>>
+    where
+        C: Config,
+    {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            fmt::Debug::fmt(&self.as_inner(), f)
+        }
+    }
+
+    #[derive(Serialize, Deserialize, Debug)]
+    struct OutputInner {
+        sender: String,
+        receiver: String,
+        hash: String,
+    }
+
+    impl<C> OutputRaw<C>
+    where
+        C: Config,
+    {
+        fn as_inner(&self) -> OutputInner {
+            OutputInner {
+                sender: hex::encode(&self.sender),
+                receiver: hex::encode(&self.receiver),
+                hash: hex::encode(&self.hash),
+            }
+        }
+    }
+
+    impl<'de, C> TryFrom<OutputInner> for OutputRaw<C>
+    where
+        C: Config,
+    {
+        type Error = hex::FromHexError;
+
+        fn try_from(
+            OutputInner {
+                sender,
+                receiver,
+                hash,
+            }: OutputInner,
+        ) -> Result<Self, Self::Error> {
+            let key_size = <<C::Aead as KeySizeUser>::KeySize as Unsigned>::USIZE;
+
+            let sender = hex::decode(sender).and_then(|v| {
+                if v.len() == key_size {
+                    Ok(GenericArray::from_slice(&v).clone())
+                } else {
+                    Err(hex::FromHexError::InvalidStringLength)
+                }
+            })?;
+            let receiver = hex::decode(receiver).and_then(|v| {
+                if v.len() == key_size {
+                    Ok(GenericArray::from_slice(&v).clone())
+                } else {
+                    Err(hex::FromHexError::InvalidStringLength)
+                }
+            })?;
+            let hash = hex::decode(hash).and_then(|v| {
+                if v.len() == mem::size_of::<Hash<C>>() {
+                    Ok(GenericArray::from_slice(&v).clone())
+                } else {
+                    Err(hex::FromHexError::InvalidStringLength)
+                }
+            })?;
+            Ok(OutputRaw {
+                sender,
+                receiver,
+                hash,
+            })
+        }
+    }
+
+    impl<'de, C> Deserialize<'de> for OutputRaw<C>
+    where
+        C: Config,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            OutputInner::deserialize(deserializer)?
+                .try_into()
+                .map_err(serde::de::Error::custom)
+        }
+    }
+
+    impl<C> Serialize for OutputRaw<C>
+    where
+        C: Config,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            self.as_inner().serialize(serializer)
+        }
+    }
+
+    impl<C> fmt::Debug for OutputRaw<C>
+    where
+        C: Config,
+    {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            fmt::Debug::fmt(&self.as_inner(), f)
+        }
     }
 }
