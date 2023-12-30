@@ -215,6 +215,11 @@ where
     N: Unsigned + Add<typenum::U1>,
     <N as Add<typenum::U1>>::Output: Unsigned,
 {
+    pub fn unsafe_set_hash(mut self, hash: Hash<C>) -> Self {
+        self.hash = hash;
+        self
+    }
+
     pub fn increase(self) -> SymmetricStateNext<C, N> {
         SymmetricState {
             key: self.key.increase(),

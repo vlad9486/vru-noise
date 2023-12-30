@@ -1,6 +1,6 @@
 [package]
 name = "vru-noise"
-version = "1.7.0"
+version = "1.7.1"
 authors = ["Vladislav Melnik <vladislav.melnik@protonmail.com>"]
 edition = "2021"
 rust-version = "1.58.1"
